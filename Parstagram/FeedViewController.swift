@@ -14,32 +14,64 @@ class FeedViewController: UIViewController, UITableViewDelegate, UITableViewData
     @IBOutlet weak var tableView: UITableView!
     
     var posts = [PFObject]()
+    let myRefreshControl = UIRefreshControl()
+    var numOfPosts: Int!
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         tableView.delegate = self
         tableView.dataSource = self
         
-        // Do any additional setup after loading the view.
+        myRefreshControl.addTarget(self, action: #selector(loadData), for: .valueChanged)
+        tableView.refreshControl = myRefreshControl
+        
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
+        loadData()
+    }
+    
+    @objc func loadData() {
+        numOfPosts = 2
         let query = PFQuery(className: "Posts")
         query.includeKey("author")
-        query.limit = 20
+        query.limit = numOfPosts
+        
+        query.findObjectsInBackground { (posts, error) in
+            if posts != nil {
+                self.posts = posts!
+                self.tableView.reloadData()
+                self.myRefreshControl.endRefreshing()
+            }
+            
+            else {
+                print("error")
+            }
+        }
+    }
+    
+    func loadMoreData() {
+        numOfPosts = numOfPosts + 1
+        let query = PFQuery(className: "Posts")
+        query.includeKey("author")
+        query.limit = numOfPosts
         
         query.findObjectsInBackground { (posts, error) in
             if posts != nil {
                 self.posts = posts!
                 self.tableView.reloadData()
             }
-            
+                   
             else {
                 print("error")
             }
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        if indexPath.row + 1 == posts.count {        // when the user get to the end of a table view
+            loadMoreData()
         }
     }
     
@@ -64,14 +96,5 @@ class FeedViewController: UIViewController, UITableViewDelegate, UITableViewData
         return cell
        }
 
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
-    }
-    */
 
 }
